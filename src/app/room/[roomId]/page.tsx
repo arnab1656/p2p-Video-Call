@@ -101,6 +101,14 @@ export default function RoomPage() {
   }, [createOffer, remoteEmailId, socket]);
 
   useEffect(() => {
+    if (!localStream) return;
+    localStream.getTracks().forEach((track) => {
+      // Adding a local stream and sending it to the Other client
+      peer?.addTrack(track, localStream);
+    });
+  }, [localStream, peer]);
+
+  useEffect(() => {
     if (!socket) return;
 
     console.log("🔌 Setting up listeners for socket:", socket.id);
@@ -177,7 +185,7 @@ export default function RoomPage() {
           )}
         </div>
       </div>
-      <button
+      {/* <button
         className="cursor-pointer"
         onClick={() => {
           if (localStream) {
@@ -186,7 +194,7 @@ export default function RoomPage() {
         }}
       >
         Resend Video
-      </button>
+      </button> */}
     </div>
   );
 }

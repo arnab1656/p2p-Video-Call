@@ -13,7 +13,7 @@ interface SocketProviderProps {
 }
 export const SocketProvider = (props: SocketProviderProps) => {
   const socket = React.useMemo(
-    () => io("https://ate-via-vhs-prot.trycloudflare.com"),
+    () => io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8081"),
     []
   );
   return (
