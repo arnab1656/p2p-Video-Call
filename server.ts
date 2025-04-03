@@ -110,6 +110,20 @@ io.on("connection", (socket) => {
     }
   );
 
+  socket.on("call-ended", (data: { roomId: string; remoteEmailId: string }) => {
+    const { roomId, remoteEmailId } = data;
+
+    const socketID = EmailToSocket.get(remoteEmailId);
+    socket.to(socketID).emit("call-ended", () => {
+      console.log(
+        "Call Ended is triggered by the socket",
+        socket.id,
+        "at room",
+        roomId
+      );
+    });
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });

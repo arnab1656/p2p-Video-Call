@@ -50,9 +50,8 @@ export const PeerProvider = (props: PeerProviderProps) => {
     if (typeof window === "undefined") {
       console.log("This is still SSR");
       return null;
-    } else {
-      console.log("Hydrated");
     }
+    console.log("Hydrated");
 
     const p = new RTCPeerConnection({
       iceServers: [

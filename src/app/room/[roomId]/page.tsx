@@ -1,5 +1,5 @@
 "use client";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSocket } from "provider/socketProvider";
 import React, { useCallback, useEffect, useState } from "react";
 import { usePeer } from "provider/peerProvider";
@@ -12,21 +12,33 @@ import {
   FaVideoSlash,
   FaSync,
   FaDesktop,
+  FaPhoneSlash,
 } from "react-icons/fa";
 import { useMedia } from "provider/mediaProvider";
 
 export default function RoomPage() {
+  const router = useRouter();
+
   const [remoteEmailId, setRemoteEmailId] = useState<string | null>(null);
   // const [localStream, setLocalStream] = React.useState<MediaStream | null>(
   //   null
   // );
   const [shareScreen, setShareScreen] = useState<MediaStreamTrack | null>(null);
 
+  // Add state to track audio/video enabled status
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoSend, setIsVideoSend] = useState<boolean>(false);
+  const [isRemoteConnected, setIsRemoteConnected] = useState<boolean | null>(
+    null
+  );
+
   const localVideoRef = React.useRef<HTMLVideoElement>(null);
   const remoteVideoRef = React.useRef<HTMLVideoElement>(null);
 
   const params = useParams();
   const roomId = params.roomId as string;
+
   const socket = useSocket();
   const {
     peer,
@@ -46,11 +58,6 @@ export default function RoomPage() {
     replaceTrack,
     combineScreenAndCameraTrack,
   } = useMedia();
-
-  // Add state to track audio/video enabled status
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVideoSend, setIsVideoSend] = useState<boolean>(false);
 
   // Add loading state
   const [isLoading, setIsLoading] = useState(true);
@@ -108,6 +115,43 @@ export default function RoomPage() {
     }
   };
 
+  const handleEndCallClick = useCallback(() => {
+    try {
+      console.log("Ending Call is clicked");
+
+      socket?.emit("call-ended", { roomId, remoteEmailId });
+
+      if (peer) {
+        peer.getSenders().forEach((sender) => {
+          if (sender.track) {
+            sender.track.stop();
+          }
+        });
+        peer.close();
+      }
+
+      if (localStream) {
+        localStream.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+      setIsVideoEnabled(true);
+      setIsAudioEnabled(true);
+      setIsVideoSend(false);
+
+      router.push("/");
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error) {
+      console.error("❌ Error in Ending Call:");
+    }
+  }, [localStream, peer, remoteEmailId, roomId, router, socket]);
+
+  const handleCallEndedByCalle = useCallback(() => {
+    alert("Call Ended By Calle");
+    setRemoteEmailId(null);
+    setIsRemoteConnected(false);
+  }, []);
+
   const handleShareScreenEnd = useCallback(async () => {
     // Revert to camera when screen sharing ends
     if (localStream) {
@@ -138,9 +182,11 @@ export default function RoomPage() {
 
   const handleAnotherUserJoined = useCallback(
     async ({ email, roomID }: { email: string; roomID: string }) => {
+      console.log("roomID", roomID);
       try {
         // The Email Id of the Calle
         setRemoteEmailId(email);
+        setIsRemoteConnected(true);
 
         const offer = await createOffer();
         socket?.emit("call-user", { email, offer });
@@ -205,6 +251,7 @@ export default function RoomPage() {
     socket.on("incoming-call", handleIncomingCall);
     socket.on("user-joined", handleAnotherUserJoined);
     socket.on("call-accepted-by-calle", handleCallAccept);
+    socket.on("call-ended", handleCallEndedByCalle);
     peer?.addEventListener("negotiationneeded", handleNegotiationNeeded);
     shareScreen?.addEventListener("ended", handleShareScreenEnd);
 
@@ -214,6 +261,7 @@ export default function RoomPage() {
       socket.off("incoming-call", handleIncomingCall);
       socket.off("user-joined", handleAnotherUserJoined);
       socket.off("call-accepted-by-calle", handleCallAccept);
+      socket.off("call-ended", handleCallEndedByCalle);
       peer?.removeEventListener("negotiationneeded", handleNegotiationNeeded);
       shareScreen?.removeEventListener("ended", handleShareScreenEnd);
     };
@@ -226,6 +274,7 @@ export default function RoomPage() {
     handleNegotiationNeeded,
     shareScreen,
     handleShareScreenEnd,
+    handleCallEndedByCalle,
   ]);
 
   useEffect(() => {
@@ -297,6 +346,14 @@ export default function RoomPage() {
               </button>
             )}
 
+            <button
+              className="p-2 rounded-full bg-red-600 text-white cursor-pointer"
+              onClick={handleEndCallClick}
+              title="End Call"
+            >
+              <FaPhoneSlash />
+            </button>
+
             {!isVideoSend && (
               <button
                 className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2  max-w-xs mx-auto cursor-pointer"
@@ -325,9 +382,11 @@ export default function RoomPage() {
           {connectionState !== "connected" && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
               <p className="text-white">
-                {connectionState === "connecting"
+                {isRemoteConnected === false
+                  ? "Other user has left the call"
+                  : connectionState === "connecting"
                   ? "Establishing connection..."
-                  : "Waiting for connection..."}
+                  : "Waiting for someone to join..."}
               </p>
             </div>
           )}
