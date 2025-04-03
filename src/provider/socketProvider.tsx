@@ -13,7 +13,14 @@ interface SocketProviderProps {
 }
 export const SocketProvider = (props: SocketProviderProps) => {
   const socket = React.useMemo(
-    () => io(process.env.NEXT_PUBLIC_SOCKET_URL || "http://localhost:8081"),
+    () =>
+      io("https://eval-modern-late-letting.trycloudflare.com/", {
+        transports: ["websocket"],
+        upgrade: false,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000,
+      }),
     []
   );
   return (

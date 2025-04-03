@@ -4,6 +4,15 @@ import { useSocket } from "provider/socketProvider";
 import React, { useCallback, useEffect, useState } from "react";
 import { usePeer } from "provider/peerProvider";
 
+// Add these imports for icons
+import {
+  FaMicrophone,
+  FaMicrophoneSlash,
+  FaVideo,
+  FaVideoSlash,
+  FaSync,
+} from "react-icons/fa";
+
 export default function RoomPage() {
   const [remoteEmailId, setRemoteEmailId] = useState<string | null>(null);
   const [localStream, setLocalStream] = React.useState<MediaStream | null>(
@@ -25,6 +34,33 @@ export default function RoomPage() {
     incomingRemoteStream,
     connectionState,
   } = usePeer();
+
+  // Add state to track audio/video enabled status
+  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+
+  // Add toggle handlers
+  const handleVideoToggle = useCallback(() => {
+    if (!localStream) return;
+
+    const videoTracks = localStream.getVideoTracks();
+    videoTracks.forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+
+    setIsVideoEnabled(!isVideoEnabled);
+  }, [localStream, isVideoEnabled]);
+
+  const handleAudioToggle = useCallback(() => {
+    if (!localStream) return;
+
+    const audioTracks = localStream.getAudioTracks();
+    audioTracks.forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+
+    setIsAudioEnabled(!isAudioEnabled);
+  }, [localStream, isAudioEnabled]);
 
   const getUserMedia = useCallback(async () => {
     try {
@@ -100,13 +136,13 @@ export default function RoomPage() {
     }
   }, [createOffer, remoteEmailId, socket]);
 
-  useEffect(() => {
-    if (!localStream) return;
-    localStream.getTracks().forEach((track) => {
-      // Adding a local stream and sending it to the Other client
-      peer?.addTrack(track, localStream);
-    });
-  }, [localStream, peer]);
+  // useEffect(() => {
+  //   if (!localStream) return;
+  //   localStream.getTracks().forEach((track) => {
+  //     // Adding a local stream and sending it to the Other client
+  //     peer?.addTrack(track, localStream);
+  //   });
+  // }, [localStream, peer]);
 
   useEffect(() => {
     if (!socket) return;
@@ -155,7 +191,7 @@ export default function RoomPage() {
     <div className="flex flex-col gap-4 p-4">
       <h1>You are connected to {remoteEmailId}</h1>
       <div className="flex flex-row gap-4">
-        <div>
+        <div className="relative">
           <h2 className="mb-2">Local Stream</h2>
           <video
             ref={localVideoRef}
@@ -164,6 +200,26 @@ export default function RoomPage() {
             muted
             className="w-full bg-black rounded-lg"
           />
+          <div className="absolute bottom-2 right-2 flex gap-2">
+            <button
+              className={`p-2 rounded-full ${
+                isAudioEnabled ? "bg-green-500" : "bg-red-500"
+              } text-white`}
+              onClick={handleAudioToggle}
+              title={isAudioEnabled ? "Mute" : "Unmute"}
+            >
+              {isAudioEnabled ? <FaMicrophone /> : <FaMicrophoneSlash />}
+            </button>
+            <button
+              className={`p-2 rounded-full ${
+                isVideoEnabled ? "bg-green-500" : "bg-red-500"
+              } text-white`}
+              onClick={handleVideoToggle}
+              title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
+            >
+              {isVideoEnabled ? <FaVideo /> : <FaVideoSlash />}
+            </button>
+          </div>
         </div>
         <div className="relative">
           <h2 className="mb-2">Remote Stream</h2>
@@ -185,16 +241,17 @@ export default function RoomPage() {
           )}
         </div>
       </div>
-      {/* <button
-        className="cursor-pointer"
+      <button
+        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 max-w-xs mx-auto"
         onClick={() => {
           if (localStream) {
             sendStream(localStream);
           }
         }}
       >
+        <FaSync className="h-5 w-5" />
         Resend Video
-      </button> */}
+      </button>
     </div>
   );
 }
