@@ -13,6 +13,7 @@ interface PeerContextType {
   sendStream: (stream: MediaStream) => void;
   incomingRemoteStream: MediaStream | null;
   connectionState: string | null;
+  getSenderVideoTrack: () => RTCRtpSender | null;
 }
 const PeerContext = React.createContext<PeerContextType>({
   peer: null,
@@ -28,6 +29,7 @@ const PeerContext = React.createContext<PeerContextType>({
   sendStream: () => {},
   incomingRemoteStream: null,
   connectionState: null,
+  getSenderVideoTrack: () => null,
 });
 
 export const usePeer = () => {
@@ -77,6 +79,17 @@ export const PeerProvider = (props: PeerProviderProps) => {
   }, []);
 
   //   console.log(peer);
+
+  const getSenderVideoTrack = () => {
+    if (!peer) return null;
+
+    const senders = peer.getSenders();
+    const videoSender = senders.find(
+      (sender) => sender.track && sender.track.kind === "video"
+    );
+
+    return videoSender || null;
+  };
 
   const createOffer = async () => {
     if (!peer) throw new Error("Peer connection not established");
@@ -155,6 +168,7 @@ export const PeerProvider = (props: PeerProviderProps) => {
         sendStream,
         incomingRemoteStream,
         connectionState,
+        getSenderVideoTrack,
       }}
     >
       {props.children}

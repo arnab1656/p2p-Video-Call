@@ -11,13 +11,16 @@ import {
   FaVideo,
   FaVideoSlash,
   FaSync,
+  FaDesktop,
 } from "react-icons/fa";
+import { useMedia } from "provider/mediaProvider";
 
 export default function RoomPage() {
   const [remoteEmailId, setRemoteEmailId] = useState<string | null>(null);
-  const [localStream, setLocalStream] = React.useState<MediaStream | null>(
-    null
-  );
+  // const [localStream, setLocalStream] = React.useState<MediaStream | null>(
+  //   null
+  // );
+  const [shareScreen, setShareScreen] = useState<MediaStreamTrack | null>(null);
 
   const localVideoRef = React.useRef<HTMLVideoElement>(null);
   const remoteVideoRef = React.useRef<HTMLVideoElement>(null);
@@ -33,11 +36,24 @@ export default function RoomPage() {
     sendStream,
     incomingRemoteStream,
     connectionState,
+    getSenderVideoTrack,
   } = usePeer();
+
+  const {
+    getUserMedia,
+    localStream,
+    getScreenTrack,
+    replaceTrack,
+    combineScreenAndCameraTrack,
+  } = useMedia();
 
   // Add state to track audio/video enabled status
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [isVideoSend, setIsVideoSend] = useState<boolean>(false);
+
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
 
   // Add toggle handlers
   const handleVideoToggle = useCallback(() => {
@@ -62,18 +78,63 @@ export default function RoomPage() {
     setIsAudioEnabled(!isAudioEnabled);
   }, [localStream, isAudioEnabled]);
 
-  const getUserMedia = useCallback(async () => {
+  const shareScreenHandler = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
+      // 1. Get the screen track
+      // 2. Get the video sender
+      // 3. Replace the track
+      // 4. Combine the screen and camera track
+      // 5. Show screen in local video element
 
-      setLocalStream(stream);
+      const screenTrack = await getScreenTrack();
+      setShareScreen(screenTrack);
+
+      if (peer && screenTrack) {
+        const videoSender = getSenderVideoTrack();
+
+        // Replace the track
+        if (videoSender) {
+          await replaceTrack(videoSender, screenTrack);
+        }
+
+        // Show screen in local video element
+        if (localVideoRef.current) {
+          const combineStream = await combineScreenAndCameraTrack(screenTrack);
+          localVideoRef.current.srcObject = combineStream;
+        }
+      }
     } catch (error) {
-      console.error("no devide found ", error);
+      console.error("Unable to get share screen Stream:", error);
     }
-  }, []);
+  };
+
+  const handleShareScreenEnd = useCallback(async () => {
+    // Revert to camera when screen sharing ends
+    if (localStream) {
+      // Get camera video track
+      const cameraTrack = localStream.getVideoTracks()[0];
+
+      if (cameraTrack && peer) {
+        const videoSender = getSenderVideoTrack();
+
+        console.log("videoSender", videoSender);
+
+        if (videoSender) {
+          console.log("Reverted to camera video");
+          await replaceTrack(videoSender, cameraTrack);
+        }
+
+        // Make sure camera track is enabled
+        cameraTrack.enabled = isVideoEnabled;
+
+        // Update local video display with original stream
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStream;
+        }
+      }
+    }
+    setShareScreen(null);
+  }, [getSenderVideoTrack, isVideoEnabled, localStream, peer, replaceTrack]);
 
   const handleAnotherUserJoined = useCallback(
     async ({ email, roomID }: { email: string; roomID: string }) => {
@@ -136,14 +197,6 @@ export default function RoomPage() {
     }
   }, [createOffer, remoteEmailId, socket]);
 
-  // useEffect(() => {
-  //   if (!localStream) return;
-  //   localStream.getTracks().forEach((track) => {
-  //     // Adding a local stream and sending it to the Other client
-  //     peer?.addTrack(track, localStream);
-  //   });
-  // }, [localStream, peer]);
-
   useEffect(() => {
     if (!socket) return;
 
@@ -153,6 +206,7 @@ export default function RoomPage() {
     socket.on("user-joined", handleAnotherUserJoined);
     socket.on("call-accepted-by-calle", handleCallAccept);
     peer?.addEventListener("negotiationneeded", handleNegotiationNeeded);
+    shareScreen?.addEventListener("ended", handleShareScreenEnd);
 
     return () => {
       console.log("🔌 Cleaning up listeners for socket:", socket.id);
@@ -161,6 +215,7 @@ export default function RoomPage() {
       socket.off("user-joined", handleAnotherUserJoined);
       socket.off("call-accepted-by-calle", handleCallAccept);
       peer?.removeEventListener("negotiationneeded", handleNegotiationNeeded);
+      shareScreen?.removeEventListener("ended", handleShareScreenEnd);
     };
   }, [
     socket,
@@ -169,10 +224,17 @@ export default function RoomPage() {
     handleCallAccept,
     peer,
     handleNegotiationNeeded,
+    shareScreen,
+    handleShareScreenEnd,
   ]);
 
   useEffect(() => {
-    getUserMedia();
+    const initMedia = async () => {
+      await getUserMedia();
+      setIsLoading(false);
+    };
+
+    initMedia();
   }, [getUserMedia]);
 
   useEffect(() => {
@@ -187,6 +249,11 @@ export default function RoomPage() {
     }
   }, [incomingRemoteStream]);
 
+  // Show loading indicator
+  if (isLoading) {
+    return <div>Loading media devices...</div>;
+  }
+
   return (
     <div className="flex flex-col gap-4 p-4">
       <h1>You are connected to {remoteEmailId}</h1>
@@ -200,11 +267,11 @@ export default function RoomPage() {
             muted
             className="w-full bg-black rounded-lg"
           />
-          <div className="absolute bottom-2 right-2 flex gap-2">
+          <div className="absolute bottom-2 right-2 flex gap-2 ">
             <button
               className={`p-2 rounded-full ${
                 isAudioEnabled ? "bg-green-500" : "bg-red-500"
-              } text-white`}
+              } text-white cursor-pointer`}
               onClick={handleAudioToggle}
               title={isAudioEnabled ? "Mute" : "Unmute"}
             >
@@ -213,12 +280,37 @@ export default function RoomPage() {
             <button
               className={`p-2 rounded-full ${
                 isVideoEnabled ? "bg-green-500" : "bg-red-500"
-              } text-white`}
+              } text-white cursor-pointer`}
               onClick={handleVideoToggle}
               title={isVideoEnabled ? "Turn off camera" : "Turn on camera"}
             >
               {isVideoEnabled ? <FaVideo /> : <FaVideoSlash />}
             </button>
+
+            {!shareScreen && (
+              <button
+                className="p-2 rounded-full bg-blue-500 text-white cursor-pointer"
+                onClick={shareScreenHandler}
+                title="Share Screen"
+              >
+                <FaDesktop />
+              </button>
+            )}
+
+            {!isVideoSend && (
+              <button
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2  max-w-xs mx-auto cursor-pointer"
+                onClick={() => {
+                  if (localStream) {
+                    sendStream(localStream);
+                    setIsVideoSend(true);
+                  }
+                }}
+              >
+                <FaSync className="h-5 w-5" />
+                Send Video
+              </button>
+            )}
           </div>
         </div>
         <div className="relative">
@@ -241,17 +333,6 @@ export default function RoomPage() {
           )}
         </div>
       </div>
-      <button
-        className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 max-w-xs mx-auto"
-        onClick={() => {
-          if (localStream) {
-            sendStream(localStream);
-          }
-        }}
-      >
-        <FaSync className="h-5 w-5" />
-        Resend Video
-      </button>
     </div>
   );
 }
