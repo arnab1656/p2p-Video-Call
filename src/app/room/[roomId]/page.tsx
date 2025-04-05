@@ -226,7 +226,7 @@ export default function RoomPage() {
       );
 
       if (localStream && !tracksAdded) {
-        socket?.emit("add-track-for-callee", { roomID: roomId });
+        socket?.emit("add-track", { roomID: roomId });
         setTracksAdded(true);
       }
     },
@@ -305,7 +305,7 @@ export default function RoomPage() {
         if (userInput && userInput.toLowerCase() === "yes") {
           console.clear();
           console.log("User confirmed - adding tracks for client B");
-          socket?.emit("add-track-for-callee", { roomID: roomId });
+          socket?.emit("add-track", { roomID: roomId });
           setTracksAdded(true);
         } else {
           console.log("User did not confirm - not adding tracks");
@@ -329,7 +329,7 @@ export default function RoomPage() {
     socket.on("peer:nego:needed", handleIncomingNegotiation);
     socket.on("peer:nego:done", handleNegotiationCallAccept);
 
-    socket.on("add-tracks-for-callee", handleAddTrackForCallee);
+    socket.on("add-track", handleAddTrackForCallee);
 
     return () => {
       console.log("🔌 Cleaning up listeners for socket:", socket.id);
@@ -343,7 +343,7 @@ export default function RoomPage() {
       socket.off("peer:nego:needed", handleIncomingNegotiation);
       socket.off("peer:nego:done", handleNegotiationCallAccept);
 
-      socket.off("add-tracks-for-callee", handleAddTrackForCallee);
+      socket.off("add-track", handleAddTrackForCallee);
     };
   }, [
     socket,

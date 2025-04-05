@@ -88,7 +88,7 @@ io.on("connection", (socket) => {
     }
   );
 
-  socket.on("add-track-for-callee", ({ roomID }) => {
+  socket.on("add-track", ({ roomID }) => {
     console.log("Add track for callee is triggered in room:", roomID);
     io.to(socket.id).emit("add-track-for-callee", { roomID });
   });
@@ -158,7 +158,7 @@ io.on("connection", (socket) => {
       const socketID = EmailToSocket.get(emailIDofAnswer);
 
       console.log("Socket ID of callee is", socketID);
-      socket.to(socketID).emit("add-tracks-for-callee", { emailIDofAnswer });
+      socket.to(socketID).emit("add-track", { emailIDofAnswer });
     }
   );
 
