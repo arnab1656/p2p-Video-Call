@@ -1,7 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import { useMemo } from "react";
+import { useSocket } from "./socketProvider";
+import { useMedia } from "./mediaProvider";
 
 interface PeerContextType {
   peer: RTCPeerConnection | null;
@@ -45,6 +47,8 @@ export const PeerProvider = (props: PeerProviderProps) => {
     React.useState<MediaStream | null>(null);
   const [connectionState, setConnectionState] =
     React.useState<RTCPeerConnectionState>("new");
+  const socket = useSocket();
+  const { localStream } = useMedia();
 
   const peer = useMemo(() => {
     if (typeof window === "undefined") {
@@ -149,13 +153,31 @@ export const PeerProvider = (props: PeerProviderProps) => {
     setIncomingRemoteStream(incomingRemoteStream);
   };
 
+  const handleAddTrackForCallee = useCallback(
+    ({ roomID }: { roomID: string }) => {
+      console.log("Add track for callee is triggered in room:", roomID);
+      if (localStream) {
+        console.log("Local stream is available");
+        localStream.getTracks().forEach((track) => {
+          // Adding a local stream and sending it to the Other client
+          peer?.addTrack(track, localStream);
+        });
+      } else {
+        console.log("Local stream is not available");
+      }
+    },
+    [localStream, peer]
+  );
+
   React.useEffect(() => {
+    socket?.on("add-track-for-callee", handleAddTrackForCallee);
     peer?.addEventListener("track", handleRemoteStreamIncomingEvent);
 
     return () => {
+      socket?.off("add-track-for-callee", handleAddTrackForCallee);
       peer?.removeEventListener("track", handleRemoteStreamIncomingEvent);
     };
-  }, [peer]);
+  }, [handleAddTrackForCallee, peer, socket]);
 
   return (
     <PeerContext.Provider

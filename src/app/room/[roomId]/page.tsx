@@ -33,6 +33,9 @@ export default function RoomPage() {
     null
   );
 
+  // Add state to track if tracks have been added
+  const [tracksAdded, setTracksAdded] = useState(false);
+
   const localVideoRef = React.useRef<HTMLVideoElement>(null);
   const remoteVideoRef = React.useRef<HTMLVideoElement>(null);
 
@@ -221,8 +224,13 @@ export default function RoomPage() {
       console.log(
         "The loop of connection is Done Means Caller connected to the Calle"
       );
+
+      if (localStream && !tracksAdded) {
+        socket?.emit("add-track-for-callee", { roomID: roomId });
+        setTracksAdded(true);
+      }
     },
-    [setRemoteAns]
+    [localStream, roomId, setRemoteAns, socket, tracksAdded]
   );
 
   const handleNegotiationNeeded = useCallback(async () => {
@@ -230,18 +238,82 @@ export default function RoomPage() {
       console.log("💡 Negotiation needed, created offer:");
 
       const negotiationOffer = await createOffer();
-      socket?.emit("call-user", {
-        email: remoteEmailId,
-        offer: {
-          // Make sure offer has correct type
-          type: "offer",
-          sdp: negotiationOffer.sdp,
-        },
+      // socket?.emit("call-user", {
+      //   email: remoteEmailId,
+      //   offer: {
+      //     // Make sure offer has correct type
+      //     type: "offer",
+      //     sdp: negotiationOffer.sdp,
+      //   },
+      // });
+      socket?.emit("peer:nego:needed", {
+        negotiationOffer,
+        to: remoteEmailId,
+        from: socket.id,
       });
     } catch (error) {
       console.error("❌ Error during negotiation:", error);
     }
   }, [createOffer, remoteEmailId, socket]);
+
+  const handleIncomingNegotiation = useCallback(
+    async ({
+      negotiationOffer,
+      from,
+    }: {
+      negotiationOffer: RTCSessionDescriptionInit;
+      from: string;
+    }) => {
+      console.log("🔄 Incoming Negotiation call with offer:", negotiationOffer);
+      const negotiationAns = await createAnswer(negotiationOffer);
+      console.log("📤 Incoming Negotiation answer Created ");
+
+      socket?.emit("peer:nego:answer:done", { negotiationAns, from });
+    },
+    [createAnswer, socket]
+  );
+
+  const handleNegotiationCallAccept = useCallback(
+    async ({
+      negotiationAns,
+      emailIDofAnswer,
+    }: {
+      negotiationAns: RTCSessionDescriptionInit;
+      emailIDofAnswer: string;
+    }) => {
+      console.log("✅ Ans is received from", emailIDofAnswer);
+      await setRemoteAns(negotiationAns);
+      console.log("✅ Negotiation loop is done");
+
+      // Notify server that Client A's negotiation is complete
+      socket?.emit("on-caller-negotiation-complete", { emailIDofAnswer });
+    },
+    [setRemoteAns, socket]
+  );
+
+  const handleAddTrackForCallee = useCallback(
+    ({ emailIDofAnswer }: { emailIDofAnswer: string }) => {
+      console.log("Now we need to Add track for ", emailIDofAnswer);
+
+      if (localStream && !tracksAdded) {
+        // Just for Debugging Purpose
+        const userInput = window.prompt(
+          "Type 'yes' to add tracks for client B:"
+        );
+
+        // Only proceed if user typed 'yes'
+        if (userInput && userInput.toLowerCase() === "yes") {
+          console.clear();
+          console.log("User confirmed - adding tracks for client B");
+          socket?.emit("add-track-for-callee", { roomID: roomId });
+          setTracksAdded(true);
+        } else {
+          console.log("User did not confirm - not adding tracks");
+        }
+      }
+    },
+    [localStream, roomId, socket, tracksAdded]
+  );
 
   useEffect(() => {
     if (!socket) return;
@@ -254,6 +326,10 @@ export default function RoomPage() {
     socket.on("call-ended", handleCallEndedByCalle);
     peer?.addEventListener("negotiationneeded", handleNegotiationNeeded);
     shareScreen?.addEventListener("ended", handleShareScreenEnd);
+    socket.on("peer:nego:needed", handleIncomingNegotiation);
+    socket.on("peer:nego:done", handleNegotiationCallAccept);
+
+    socket.on("add-tracks-for-callee", handleAddTrackForCallee);
 
     return () => {
       console.log("🔌 Cleaning up listeners for socket:", socket.id);
@@ -264,6 +340,10 @@ export default function RoomPage() {
       socket.off("call-ended", handleCallEndedByCalle);
       peer?.removeEventListener("negotiationneeded", handleNegotiationNeeded);
       shareScreen?.removeEventListener("ended", handleShareScreenEnd);
+      socket.off("peer:nego:needed", handleIncomingNegotiation);
+      socket.off("peer:nego:done", handleNegotiationCallAccept);
+
+      socket.off("add-tracks-for-callee", handleAddTrackForCallee);
     };
   }, [
     socket,
@@ -275,6 +355,9 @@ export default function RoomPage() {
     shareScreen,
     handleShareScreenEnd,
     handleCallEndedByCalle,
+    handleIncomingNegotiation,
+    handleNegotiationCallAccept,
+    handleAddTrackForCallee,
   ]);
 
   useEffect(() => {

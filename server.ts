@@ -88,6 +88,30 @@ io.on("connection", (socket) => {
     }
   );
 
+  socket.on("add-track-for-callee", ({ roomID }) => {
+    console.log("Add track for callee is triggered in room:", roomID);
+    io.to(socket.id).emit("add-track-for-callee", { roomID });
+  });
+
+  socket.on("peer:nego:needed", ({ negotiationOffer, to, from }) => {
+    const emailID = SocketIdToEmail.get(from);
+    console.log("Negotiation needed for:", emailID);
+    console.log("Negotiation offer from :", emailID, "is", negotiationOffer);
+
+    const socketID = EmailToSocket.get(to);
+    socket.to(socketID).emit("peer:nego:needed", { negotiationOffer, from });
+  });
+
+  socket.on("peer:nego:answer:done", ({ negotiationAns, from }) => {
+    const emailID = SocketIdToEmail.get(from);
+    console.log("Negotiation answer ready at server to send to:", emailID);
+    console.log("Negotiation answer is", negotiationAns);
+
+    const emailIDofAnswer = SocketIdToEmail.get(socket.id);
+
+    socket.to(from).emit("peer:nego:done", { negotiationAns, emailIDofAnswer });
+  });
+
   socket.on(
     "call-accepted",
     async ({
@@ -123,6 +147,20 @@ io.on("connection", (socket) => {
       );
     });
   });
+
+  socket.on(
+    "on-caller-negotiation-complete",
+    ({ emailIDofAnswer }: { emailIDofAnswer: string }) => {
+      console.log(
+        `🔄 Client A negotiation complete So tell ${emailIDofAnswer} to add tracks:`
+      );
+
+      const socketID = EmailToSocket.get(emailIDofAnswer);
+
+      console.log("Socket ID of callee is", socketID);
+      socket.to(socketID).emit("add-tracks-for-callee", { emailIDofAnswer });
+    }
+  );
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
