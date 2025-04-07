@@ -20,9 +20,6 @@ export default function RoomPage() {
   const router = useRouter();
 
   const [remoteEmailId, setRemoteEmailId] = useState<string | null>(null);
-  // const [localStream, setLocalStream] = React.useState<MediaStream | null>(
-  //   null
-  // );
   const [shareScreen, setShareScreen] = useState<MediaStreamTrack | null>(null);
 
   // Add state to track audio/video enabled status
@@ -88,7 +85,7 @@ export default function RoomPage() {
     setIsAudioEnabled(!isAudioEnabled);
   }, [localStream, isAudioEnabled]);
 
-  const shareScreenHandler = async () => {
+  const shareScreenHandler = useCallback(async () => {
     try {
       // 1. Get the screen track
       // 2. Get the video sender
@@ -116,7 +113,13 @@ export default function RoomPage() {
     } catch (error) {
       console.error("Unable to get share screen Stream:", error);
     }
-  };
+  }, [
+    combineScreenAndCameraTrack,
+    getScreenTrack,
+    getSenderVideoTrack,
+    peer,
+    replaceTrack,
+  ]);
 
   const handleEndCallClick = useCallback(() => {
     try {
