@@ -8,13 +8,15 @@ export const SocketContext = React.createContext<Socket | null>(null);
 export const useSocket = () => {
   return React.useContext(SocketContext);
 };
+
 interface SocketProviderProps {
   children: ReactNode;
 }
+
 export const SocketProvider = (props: SocketProviderProps) => {
   const socket = React.useMemo(
     () =>
-      io("https://simply-meyer-visibility-equipped.trycloudflare.com", {
+      io("https://th-contacted-insured-debate.trycloudflare.com", {
         transports: ["websocket"],
         upgrade: false,
         reconnection: true,
@@ -23,6 +25,7 @@ export const SocketProvider = (props: SocketProviderProps) => {
       }),
     []
   );
+
   return (
     <SocketContext.Provider value={socket}>
       {props.children}

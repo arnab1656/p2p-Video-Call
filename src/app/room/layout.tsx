@@ -2,6 +2,7 @@
 
 import React from "react";
 import MediaProvider from "provider/mediaProvider";
+import { PeerProvider } from "provider/peerProvider";
 
 export default function RoomLayout({
   children,
@@ -10,7 +11,9 @@ export default function RoomLayout({
 }) {
   return (
     <div className="room-layout">
-      <MediaProvider>{children}</MediaProvider>
+      <MediaProvider>
+        <PeerProvider>{children}</PeerProvider>
+      </MediaProvider>
     </div>
   );
 }
