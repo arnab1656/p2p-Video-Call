@@ -10,7 +10,6 @@ import {
   FaMicrophoneSlash,
   FaVideo,
   FaVideoSlash,
-  FaSync,
   FaDesktop,
   FaPhoneSlash,
 } from "react-icons/fa";
@@ -25,7 +24,6 @@ export default function RoomPage() {
   // Add state to track audio/video enabled status
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [isVideoSend, setIsVideoSend] = useState<boolean>(false);
   const [isRemoteConnected, setIsRemoteConnected] = useState<boolean | null>(
     null
   );
@@ -45,7 +43,6 @@ export default function RoomPage() {
     createOffer,
     createAnswer,
     setRemoteAns,
-    sendStream,
     incomingRemoteStream,
     connectionState,
     getSenderVideoTrack,
@@ -143,8 +140,6 @@ export default function RoomPage() {
       }
       setIsVideoEnabled(true);
       setIsAudioEnabled(true);
-      setIsVideoSend(false);
-
       router.push("/");
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (error) {
@@ -439,21 +434,6 @@ export default function RoomPage() {
             >
               <FaPhoneSlash />
             </button>
-
-            {!isVideoSend && (
-              <button
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors flex items-center justify-center gap-2  max-w-xs mx-auto cursor-pointer"
-                onClick={() => {
-                  if (localStream) {
-                    sendStream(localStream);
-                    setIsVideoSend(true);
-                  }
-                }}
-              >
-                <FaSync className="h-5 w-5" />
-                Send Video
-              </button>
-            )}
           </div>
         </div>
         <div className="relative">
