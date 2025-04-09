@@ -1,65 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useSocket } from "../provider/socketProvider";
-import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+import { useFireBase } from "../provider/firebaseProvider";
+import { FaGoogle } from "react-icons/fa";
 
 function HomePage() {
-  const [email, setEmail] = useState<string>("");
-  const [roomID, setRoomID] = useState<string>("");
-
-  const socket = useSocket();
-  const router = useRouter();
-
-  const handleRoomJoined = useCallback(
-    (roomID: string) => {
-      console.log(
-        "Joined the Room id with",
-        roomID,
-        " and the join loop is complete for socket with ID ",
-        socket?.id
-      );
-    },
-    [socket]
-  );
-
-  const handleJoinToRoom = () => {
-    if (!email || !roomID) {
-      alert("Enter the Email ID and the Room ID To Enter a Call");
-      return;
-    }
-    socket?.emit("room-join", { email, roomID });
-    router.push(`/room/${roomID}`);
-  };
+  const { googleSignUpWithPopUp, currentUser } = useFireBase();
 
   useEffect(() => {
-    socket?.on("room-joined", handleRoomJoined);
-  }, [handleRoomJoined, socket]);
+    console.log("CURRETN USER", currentUser);
+  }, [currentUser]);
 
   return (
-    <div>
+    <div className="flex flex-col items-center justify-center h-screen">
       <div>
-        <input
-          type="text"
-          value={email}
-          placeholder="Enter your email"
-          onChange={(e) => {
-            setEmail(e.target.value);
-          }}
-        />
-        <input
-          type="text"
-          value={roomID}
-          placeholder="Enter the Room ID"
-          onChange={(e) => {
-            setRoomID(e.target.value);
-          }}
-        />
-        <button className="cursor-pointer" onClick={handleJoinToRoom}>
-          Enter the Room
+        <h1>Login with Google</h1>
+        <button
+          className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded shadow-sm hover:bg-gray-50 transition-colors cursor-pointer"
+          onClick={googleSignUpWithPopUp}
+        >
+          <FaGoogle className="text-red-500" />
+          <span>Sign in with Google</span>
         </button>
       </div>
     </div>
   );
 }
+
 export default HomePage;

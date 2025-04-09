@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SocketProvider } from "../provider/socketProvider";
+import FireBaseProvider from "provider/firebaseProvider";
 // import { PeerProvider } from "../provider/peerProvider";
 
 const geistSans = Geist({
@@ -29,7 +30,9 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <SocketProvider>{children}</SocketProvider>
+        <FireBaseProvider>
+          <SocketProvider>{children}</SocketProvider>
+        </FireBaseProvider>
       </body>
     </html>
   );

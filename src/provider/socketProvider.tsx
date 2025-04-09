@@ -16,7 +16,7 @@ interface SocketProviderProps {
 export const SocketProvider = (props: SocketProviderProps) => {
   const socket = React.useMemo(
     () =>
-      io("https://planes-excluded-warrant-genesis.trycloudflare.com", {
+      io("http://localhost:8081/", {
         transports: ["websocket"],
         upgrade: false,
         reconnection: true,
