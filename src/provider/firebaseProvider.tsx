@@ -17,15 +17,18 @@ import {
   onAuthStateChanged,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
+import { deleteCookies, setCookies } from "utils/cookiesSet";
 
 interface FireBaseContextType {
   googleSignUpWithPopUp: () => Promise<UserCredential | null>;
   currentUser: User | null;
+  handleSignOut: () => Promise<void>;
 }
 
 const FireBaseContext = createContext<FireBaseContextType>({
   googleSignUpWithPopUp: () => Promise.resolve(null),
   currentUser: null,
+  handleSignOut: () => Promise.resolve(),
 });
 
 export const useFireBase = () => {
@@ -45,6 +48,8 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
 
       setCurrentUser(result.user);
 
+      await setCookies("auth-token", result.user.accessToken);
+
       if (result.user) {
         router.push("/lobby");
       }
@@ -57,6 +62,17 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
 
   const handleAuthChangeState = useCallback((user: User | null) => {
     setCurrentUser(user);
+    if (!user) {
+      deleteCookies("auth-token");
+    }
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      signOut(auth);
+    } catch (error) {
+      console.log("Error signnoing out ", error);
+    }
   }, []);
 
   useEffect(() => {
@@ -68,18 +84,12 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
   }, [handleAuthChangeState]);
 
   return (
-    <FireBaseContext.Provider value={{ googleSignUpWithPopUp, currentUser }}>
+    <FireBaseContext.Provider
+      value={{ googleSignUpWithPopUp, currentUser, handleSignOut }}
+    >
       {props.children}
     </FireBaseContext.Provider>
   );
-};
-
-export const handleSignOut = async () => {
-  try {
-    signOut(auth);
-  } catch (error) {
-    console.log("Error signnoing out ", error);
-  }
 };
 
 export default FireBaseProvider;

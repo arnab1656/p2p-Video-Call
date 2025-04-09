@@ -3,8 +3,6 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 export function middleware(request: NextRequest) {
-  console.log("MIDDLEWARE RUNNING FOR: " + request.nextUrl.pathname);
-
   // Get token from cookies
   const token = request.cookies.get("auth-token")?.value;
 
@@ -15,7 +13,6 @@ export function middleware(request: NextRequest) {
 
   // If accessing protected route and no token exists, redirect to login
   if (isProtectedRoute && !token) {
-    console.log("NO TOKEN");
     return NextResponse.redirect(new URL("/", request.url));
   }
 
