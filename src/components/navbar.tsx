@@ -5,16 +5,35 @@ import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useFireBase } from "../provider/firebaseProvider";
 import { useRouter } from "next/navigation";
-import { FaVideo, FaUserCircle, FaSignOutAlt, FaCog } from "react-icons/fa";
+import {
+  FaVideo,
+  FaUserCircle,
+  FaSignOutAlt,
+  FaCog,
+  FaSpinner,
+} from "react-icons/fa";
+import { getCookies } from "utils/cookiesSet";
 
 const Navbar = () => {
   const { currentUser, handleSignOut } = useFireBase();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
-    console.log("user is in navbar", currentUser);
+    const checkAuth = async () => {
+      if (currentUser === null) {
+        const authToken = await getCookies("auth-token");
+        if (!authToken) {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
   }, [currentUser]);
 
   // Close dropdown when clicking outside
@@ -102,9 +121,10 @@ const Navbar = () => {
                   {getUserInitials()}
                 </div>
               )}
-              <span className="hidden md:inline">
-                {currentUser.displayName || currentUser.email}
-              </span>
+            </div>
+          ) : isLoading ? (
+            <div className="flex items-center gap-2 text-gray-700 hover:text-blue-600">
+              <FaSpinner className="text-xl animate-spin" />
             </div>
           ) : (
             <Link

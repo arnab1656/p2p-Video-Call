@@ -20,6 +20,7 @@ import {
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { deleteCookies, setCookies } from "utils/cookiesSet";
+import Navbar from "components/navbar";
 
 interface FireBaseContextType {
   googleSignUpWithPopUp: () => Promise<UserCredential | null>;
@@ -156,6 +157,7 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
         loginWithPasswordAndEmail,
       }}
     >
+      <Navbar />
       {props.children}
     </FireBaseContext.Provider>
   );

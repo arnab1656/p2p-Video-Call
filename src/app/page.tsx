@@ -4,10 +4,13 @@ import { useEffect, useState } from "react";
 import { useFireBase } from "../provider/firebaseProvider";
 import { FaGoogle } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import { getCookies } from "utils/cookiesSet";
 
 export default function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
   const {
     googleSignUpWithPopUp,
     signUpWithPasswordAndEmail,
@@ -29,12 +32,37 @@ export default function Home() {
   };
 
   useEffect(() => {
-    console.log("CURRETN USER", currentUser);
+    const checkAuth = async () => {
+      if (currentUser === null) {
+        const authToken = await getCookies("auth-token");
+        if (!authToken) {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    checkAuth();
   }, [currentUser]);
 
   const buttonStyle =
     "border border-gray-300 rounded px-4 py-2 m-2 cursor-pointer hover:bg-gray-100";
   const inputStyle = "border border-gray-300 rounded px-4 py-2 m-2 w-full";
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-8 w-32 bg-gray-200 rounded mb-4"></div>
+          <div className="h-32 w-64 bg-gray-200 rounded mb-4"></div>
+          <div className="flex space-x-4">
+            <div className="h-8 w-24 bg-gray-200 rounded"></div>
+            <div className="h-8 w-24 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center p-24">
