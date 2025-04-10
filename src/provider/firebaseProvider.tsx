@@ -15,6 +15,8 @@ import {
   UserCredential,
   User,
   onAuthStateChanged,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { deleteCookies, setCookies } from "utils/cookiesSet";
@@ -23,12 +25,29 @@ interface FireBaseContextType {
   googleSignUpWithPopUp: () => Promise<UserCredential | null>;
   currentUser: User | null;
   handleSignOut: () => Promise<void>;
+  signUpWithPasswordAndEmail: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => Promise<void>;
+
+  loginWithPasswordAndEmail: ({
+    email,
+    password,
+  }: {
+    email: string;
+    password: string;
+  }) => void;
 }
 
 const FireBaseContext = createContext<FireBaseContextType>({
   googleSignUpWithPopUp: () => Promise.resolve(null),
   currentUser: null,
   handleSignOut: () => Promise.resolve(),
+  signUpWithPasswordAndEmail: () => Promise.resolve(),
+  loginWithPasswordAndEmail: () => {},
 });
 
 export const useFireBase = () => {
@@ -48,7 +67,8 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
 
       setCurrentUser(result.user);
 
-      await setCookies("auth-token", result.user.accessToken);
+      const token = await result.user.getIdToken();
+      await setCookies("auth-token", token);
 
       if (result.user) {
         router.push("/lobby");
@@ -59,6 +79,49 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
       return null;
     }
   }, [router]);
+
+  const signUpWithPasswordAndEmail = useCallback(
+    async ({ email, password }: { email: string; password: string }) => {
+      try {
+        const result = await createUserWithEmailAndPassword(
+          auth,
+          email,
+          password
+        );
+        setCurrentUser(result.user);
+
+        const token = await result.user.getIdToken();
+        await setCookies("auth-token", token);
+
+        if (result.user) {
+          router.push("/lobby");
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    },
+    [router]
+  );
+
+  const loginWithPasswordAndEmail = useCallback(
+    async ({ email, password }: { email: string; password: string }) => {
+      try {
+        const result = await signInWithEmailAndPassword(auth, email, password);
+
+        setCurrentUser(result.user);
+
+        const token = await result.user.getIdToken();
+        await setCookies("auth-token", token);
+
+        if (result.user) {
+          router.push("/lobby");
+        }
+      } catch (err) {
+        console.log(err);
+      }
+    },
+    [router]
+  );
 
   const handleAuthChangeState = useCallback((user: User | null) => {
     setCurrentUser(user);
@@ -85,7 +148,13 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
 
   return (
     <FireBaseContext.Provider
-      value={{ googleSignUpWithPopUp, currentUser, handleSignOut }}
+      value={{
+        googleSignUpWithPopUp,
+        currentUser,
+        handleSignOut,
+        signUpWithPasswordAndEmail,
+        loginWithPasswordAndEmail,
+      }}
     >
       {props.children}
     </FireBaseContext.Provider>
