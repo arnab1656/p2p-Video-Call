@@ -9,7 +9,8 @@ export function middleware(request: NextRequest) {
   // Check if the request is for a protected route
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/lobby") ||
-    request.nextUrl.pathname.startsWith("/room");
+    request.nextUrl.pathname.startsWith("/room") ||
+    request.nextUrl.pathname.startsWith("/onboard");
 
   // If accessing protected route and no token exists, redirect to login
   if (isProtectedRoute && !token) {
@@ -22,5 +23,5 @@ export function middleware(request: NextRequest) {
 
 // Define which routes this middleware applies to
 export const config = {
-  matcher: ["/lobby/:path*", "/room/:path*"],
+  matcher: ["/lobby/:path*", "/room/:path*", "/onboard/:path*"],
 };

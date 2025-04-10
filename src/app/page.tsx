@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useFireBase } from "../provider/firebaseProvider";
 import { FaGoogle } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -14,6 +15,8 @@ export default function Home() {
     currentUser,
     handleSignOut,
   } = useFireBase();
+
+  const router = useRouter();
 
   const handleSignUPSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,6 +46,15 @@ export default function Home() {
           <button onClick={handleSignOut} className={buttonStyle}>
             Sign Out
           </button>
+
+          <button
+            onClick={() => {
+              router.push("/onboard");
+            }}
+            className={buttonStyle}
+          >
+            Lets Start the Chat
+          </button>
         </div>
       ) : (
         <div className="border border-gray-200 p-6 rounded shadow-sm w-80">
@@ -67,10 +79,11 @@ export default function Home() {
                 className={inputStyle}
               />
             </div>
-            <div className="flex justify-between">
+            <div className="flex justify-between items-center">
               <button type="submit" className={buttonStyle}>
                 Sign Up
               </button>
+              <span>or</span>
               <button
                 type="button"
                 onClick={handleLoginSubmit}

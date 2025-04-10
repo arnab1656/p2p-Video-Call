@@ -1,15 +1,23 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSocket } from "provider/socketProvider";
+import { useFireBase } from "provider/firebaseProvider";
 
 function LobbyPage() {
+  const searchParams = useSearchParams();
+  const action = searchParams.get("action");
+
+  console.log("action is ", action);
+
   const [email, setEmail] = useState<string>("");
   const [roomID, setRoomID] = useState<string>("");
 
   const socket = useSocket();
   const router = useRouter();
+
+  const { currentUser } = useFireBase();
 
   const handleRoomJoined = useCallback(
     (roomID: string) => {
@@ -28,7 +36,7 @@ function LobbyPage() {
       alert("Enter the Email ID and the Room ID To Enter a Call");
       return;
     }
-    socket?.emit("room-join", { email, roomID });
+    socket?.emit("room-join", { email: currentUser?.email, roomID });
     router.push(`/room/${roomID}`);
   };
 
