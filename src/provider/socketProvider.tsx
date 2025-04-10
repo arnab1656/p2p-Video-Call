@@ -16,7 +16,7 @@ interface SocketProviderProps {
 export const SocketProvider = (props: SocketProviderProps) => {
   const socket = React.useMemo(
     () =>
-      io("https://negative-printable-ns-besides.trycloudflare.com", {
+      io("https://sacramento-widely-ing-totals.trycloudflare.com", {
         transports: ["websocket"],
         upgrade: false,
         reconnection: true,

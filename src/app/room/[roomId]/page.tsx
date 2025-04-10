@@ -386,7 +386,11 @@ export default function RoomPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h1>You are connected to {remoteEmailId}</h1>
+      {!remoteEmailId ? (
+        <h1>Waiting for the other user to join...</h1>
+      ) : (
+        <h1>You are connected to {remoteEmailId}</h1>
+      )}
       <div className="flex flex-row gap-4">
         <div className="relative">
           <h2 className="mb-2">Local Stream</h2>

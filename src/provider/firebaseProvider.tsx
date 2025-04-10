@@ -17,7 +17,6 @@ import {
   onAuthStateChanged,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
-  sendSignInLinkToEmail,
 } from "firebase/auth";
 import { useRouter } from "next/navigation";
 import { deleteCookies, setCookies } from "utils/cookiesSet";
@@ -41,8 +40,6 @@ interface FireBaseContextType {
     email: string;
     password: string;
   }) => void;
-
-  signInWithEmailLink: (email: string) => Promise<void>;
 }
 
 const FireBaseContext = createContext<FireBaseContextType>({
@@ -51,7 +48,6 @@ const FireBaseContext = createContext<FireBaseContextType>({
   handleSignOut: () => Promise.resolve(),
   signUpWithPasswordAndEmail: () => Promise.resolve(),
   loginWithPasswordAndEmail: () => {},
-  signInWithEmailLink: () => Promise.resolve(),
 });
 
 export const useFireBase = () => {
@@ -142,21 +138,6 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
     }
   }, []);
 
-  const signInWithEmailLink = useCallback(async (email: string) => {
-    try {
-      const actionCodeSettings = {
-        url: window.location.href,
-        handleCodeInApp: true,
-      };
-
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      window.localStorage.setItem("emailForSignIn", email);
-      alert("Check your email for the sign-in link");
-    } catch (error) {
-      console.error("Error sending email link:", error);
-    }
-  }, []);
-
   useEffect(() => {
     const unSubscribe = onAuthStateChanged(auth, handleAuthChangeState);
 
@@ -173,7 +154,6 @@ const FireBaseProvider = (props: { children: React.ReactNode }) => {
         handleSignOut,
         signUpWithPasswordAndEmail,
         loginWithPasswordAndEmail,
-        signInWithEmailLink,
       }}
     >
       {props.children}
